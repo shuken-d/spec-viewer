@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>集研 公住仕 - モバイルビューア</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: system-ui, -apple-system, "ヒラギノ角ゴ ProN", "メイリオ", sans-serif;
+      background: #111;
+      color: #fff;
+      box-sizing: border-box;
+    }
+    *, *::before, *::after {
+      box-sizing: inherit;
+    }
+    .toolbar {
+      height: 44px;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      background: #222;
+      border-bottom: 1px solid #444;
+      font-size: 14px;
+      gap: 6px;
+    }
+    .toolbar button {
+      border: 1px solid #555;
+      background: #333;
+      color: #fff;
+      border-radius: 4px;
+      padding: 4px 8px;
+      font-size: 13px;
+    }
+    .toolbar button:active {
+      background: #555;
+    }
+    .toolbar span {
+      font-size: 12px;
+      color: #ccc;
+    }
+    #viewerContainer {
+      height: calc(100% - 44px);
+      width: 100%;
+      overflow: auto;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      background: #111;
+    }
+    canvas {
+      margin: 8px;
+      background: #fff;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+    }
+  </style>
+
+  <!-- PDF.js（CDN版） -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+  <div class="toolbar">
+    <button type="button" onclick="history.back()">← 検索に戻る</button>
+    <button type="button" id="prevPageBtn">前のページ</button>
+    <button type="button" id="nextPageBtn">次のページ</button>
+    <span id="pageInfo"></span>
+  </div>
+  <div id="viewerContainer">
+    <canvas id="pdfCanvas"></canvas>
+  </div>
+
+  <script>
+    // クエリパラメータから doc と page を取得
+    function getQueryParam(name) {
+      const params = new URLSearchParams(window.location.search);
+      return params.get(name);
+    }
+
+    const docKey = getQueryParam('doc') || 'kenchiku';
+    let currentPage = parseInt(getQueryParam('page') || '1', 10);
+
+    const pdfUrl = docKey + '.pdf';
+
+    const canvas = document.getElementById('pdfCanvas');
+    const ctx = canvas.getContext('2d');
+    const pageInfo = document.getElementById('pageInfo');
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+
+    let pdfDoc = null;
+    let isRendering = false;
+    let pendingPage = null;
+
+    // PDF.jsの worker の場所を指定（CDN版）
+    if (window['pdfjsLib']) {
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+
+    function renderPage(num) {
+      if (!pdfDoc) return;
+      if (num < 1 || num > pdfDoc.numPages) return;
+
+      isRendering = true;
+      pdfDoc.getPage(num).then(page => {
+        const viewport = page.getViewport({ scale: 1 });
+
+        // 画面幅にフィットするようにスケール計算
+        const containerWidth = document.getElementById('viewerContainer').clientWidth || window.innerWidth;
+        const scale = (containerWidth - 16) / viewport.width; // 余白を少し引く
+        const scaledViewport = page.getViewport({ scale });
+
+        canvas.width = scaledViewport.width;
+        canvas.height = scaledViewport.height;
+
+        const renderContext = {
+          canvasContext: ctx,
+          viewport: scaledViewport
+        };
+
+        const renderTask = page.render(renderContext);
+        renderTask.promise.then(() => {
+          isRendering = false;
+          pageInfo.textContent = 'ページ ' + num + ' / ' + pdfDoc.numPages;
+          // キューがあれば次を描画
+          if (pendingPage !== null) {
+            const next = pendingPage;
+            pendingPage = null;
+            renderPage(next);
+          }
+        });
+      });
+    }
+
+    function queueRenderPage(num) {
+      if (isRendering) {
+        pendingPage = num;
+      } else {
+        renderPage(num);
+      }
+    }
+
+    // 前へ / 次へボタン
+    prevBtn.addEventListener('click', () => {
+      if (!pdfDoc) return;
+      if (currentPage <= 1) return;
+      currentPage -= 1;
+      queueRenderPage(currentPage);
+    });
+
+    nextBtn.addEventListener('click', () => {
+      if (!pdfDoc) return;
+      if (currentPage >= pdfDoc.numPages) return;
+      currentPage += 1;
+      queueRenderPage(currentPage);
+    });
+
+    // PDFを読み込む
+    if (window['pdfjsLib']) {
+      pdfjsLib.getDocument(pdfUrl).promise.then(doc => {
+        pdfDoc = doc;
+        if (!currentPage || currentPage < 1 || currentPage > pdfDoc.numPages) {
+          currentPage = 1;
+        }
+        renderPage(currentPage);
+      }).catch(err => {
+        console.error('PDF 読み込みエラー:', err);
+        alert('PDF を読み込めませんでした。');
+      });
+    } else {
+      alert('PDF ビューアの読み込みに失敗しました。');
+    }
+  </script>
+</body>
+</html>
