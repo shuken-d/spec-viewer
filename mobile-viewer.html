@@ -55,6 +55,9 @@
       margin: 8px;
       background: #fff;
       box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+      /* 内部解像度を上げるので、見た目サイズはCSS側で制御 */
+      max-width: 100%;
+      height: auto;
     }
   </style>
 
@@ -94,37 +97,51 @@
     let isRendering = false;
     let pendingPage = null;
 
-    // PDF.jsの worker の場所を指定（CDN版）
+    // PDF.js の worker の場所を指定（CDN版）
     if (window['pdfjsLib']) {
       pdfjsLib.GlobalWorkerOptions.workerSrc =
         'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     }
 
+    // ▼ 高解像度で描画するためのレンダリング関数
     function renderPage(num) {
       if (!pdfDoc) return;
       if (num < 1 || num > pdfDoc.numPages) return;
 
       isRendering = true;
       pdfDoc.getPage(num).then(page => {
+        // まず 100% 表示時のビューを取得
         const viewport = page.getViewport({ scale: 1 });
 
-        // 画面幅にフィットするようにスケール計算
+        // 画面幅にフィットさせるベーススケール
         const containerWidth = document.getElementById('viewerContainer').clientWidth || window.innerWidth;
-        const scale = (containerWidth - 16) / viewport.width; // 余白を少し引く
-        const scaledViewport = page.getViewport({ scale });
+        const baseScale = (containerWidth - 16) / viewport.width; // 余白ぶん少し引く
 
-        canvas.width = scaledViewport.width;
-        canvas.height = scaledViewport.height;
+        // デバイスのピクセル比（Retina 対応）
+        const pixelRatio = window.devicePixelRatio || 1;
+
+        // 内部描画用スケール（高解像度で描画）
+        const renderScale = baseScale * pixelRatio;
+        const renderViewport = page.getViewport({ scale: renderScale });
+
+        // canvas の内部解像度（ピクセル数）
+        canvas.width = renderViewport.width;
+        canvas.height = renderViewport.height;
+
+        // CSS 上の見た目サイズ（ピクセル比で割る）
+        canvas.style.width = (renderViewport.width / pixelRatio) + 'px';
+        canvas.style.height = (renderViewport.height / pixelRatio) + 'px';
 
         const renderContext = {
           canvasContext: ctx,
-          viewport: scaledViewport
+          viewport: renderViewport
         };
 
         const renderTask = page.render(renderContext);
         renderTask.promise.then(() => {
           isRendering = false;
           pageInfo.textContent = 'ページ ' + num + ' / ' + pdfDoc.numPages;
+
           // キューがあれば次を描画
           if (pendingPage !== null) {
             const next = pendingPage;
@@ -173,6 +190,12 @@
     } else {
       alert('PDF ビューアの読み込みに失敗しました。');
     }
+
+    // 画面の回転・サイズ変更時にも再描画して、ボケを防ぐ
+    window.addEventListener('resize', () => {
+      if (!pdfDoc) return;
+      queueRenderPage(currentPage);
+    });
   </script>
 </body>
 </html>
