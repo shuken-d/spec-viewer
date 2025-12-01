@@ -48,6 +48,7 @@ async function loadIndex() {
 // =============================
 // PDF を開く関数
 // =============================
+// ② PDF を開く関数（元の iframe 版）
 function openPdf(kindOrItem) {
   const frame = document.getElementById('pdfFrame');
   let pdf = '';
@@ -82,16 +83,8 @@ function openPdf(kindOrItem) {
     return;
   }
 
-  const url = `${encodeURI(pdf)}#page=${page}`;
-
-  // ★ PWA（ホーム画面アイコン）で開いている場合は、新しいタブでPDFを開く
-  if (isStandalone()) {
-    window.open(url, '_blank');  // Safari / Chrome 本体で該当ページを表示
-    return;
-  }
-
-  // 通常ブラウザの場合は iframe に表示（今までどおり）
-  frame.src = url;
+  // 右側の iframe の中で、指定ページを表示
+  frame.src = `${encodeURI(pdf)}#page=${page}`;
 }
 
 
