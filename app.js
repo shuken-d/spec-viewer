@@ -1,9 +1,4 @@
 console.log('app.js が読み込まれました');
-// PWA（ホーム画面アイコン）として開いているか判定
-function isStandalone() {
-  return window.matchMedia('(display-mode: standalone)').matches
-      || window.navigator.standalone === true; // iOS 用
-}
 
 // 直近の検索キーワードを保存しておく
 let currentKeyword = '';
@@ -48,7 +43,6 @@ async function loadIndex() {
 // =============================
 // PDF を開く関数
 // =============================
-// ② PDF を開く関数（元の iframe 版）
 function openPdf(kindOrItem) {
   const frame = document.getElementById('pdfFrame');
   let pdf = '';
@@ -83,10 +77,30 @@ function openPdf(kindOrItem) {
     return;
   }
 
-  // 右側の iframe の中で、指定ページを表示
-  frame.src = `${encodeURI(pdf)}#page=${page}`;
-}
+  let url = `${encodeURI(pdf)}#page=${page}`;
+  if (currentKeyword) {
+    const encodedKeyword = encodeURIComponent(currentKeyword);
+    url += `&search=${encodedKeyword}`;
+  }
 
+  console.log('openPdf URL:', url, 'keyword:', currentKeyword);
+
+  // 一度リセットしてから読み込み直すことで、ページ切り替えを確実にする
+  frame.onload = () => {
+    if (!currentKeyword) return;
+    try {
+      frame.contentWindow.focus();
+      frame.contentWindow.find(currentKeyword);
+    } catch (e) {
+      console.warn('PDF 内検索制御はこの環境では制限があります:', e);
+    }
+  };
+
+  frame.src = '';
+  setTimeout(() => {
+    frame.src = url;
+  }, 50);
+}
 
 // =============================
 // 検索処理
