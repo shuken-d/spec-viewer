@@ -2,7 +2,7 @@
   "name": "集研 公住仕",
   "short_name": "集研 公住仕",
   "start_url": "./index.html",
-  "display": "standalone",
+  "display": "browser",
   "background_color": "#ffffff",
   "theme_color": "#ffffff",
   "icons": [
