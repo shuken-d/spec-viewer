@@ -83,10 +83,14 @@ function openPdf(kindOrItem) {
     return;
   }
 
+  // PDF ファイル名
   const pdf = `${docKey}.pdf`;
-  const url = `${encodeURI(pdf)}#page=${page}&zoom=page-width`;
 
-  // ★ スマホ端末のときは「専用ビューア」に飛ばす
+  // iframe 用 URL（?v=タイムスタンプ を付けて毎回“別URL”にする）
+  const cacheBuster = `v=${Date.now()}`;
+  const iframeUrl = `${encodeURI(pdf)}?${cacheBuster}#page=${page}&zoom=page-width`;
+
+  // ★ スマホ端末のときは「専用ビューア」に飛ばす（こちらは従来どおり）
   if (isMobileView()) {
     const viewerUrl =
       `mobile-viewer.html?doc=${encodeURIComponent(docKey)}&page=${encodeURIComponent(page)}`;
@@ -97,12 +101,11 @@ function openPdf(kindOrItem) {
 
   // ★ PCなどでは右側の iframe に表示（こちらがメイン）
   if (frame) {
-    console.log('iframe に表示:', url);
-    frame.src = url;
+    console.log('iframe に表示:', iframeUrl);
+    frame.src = iframeUrl;
   } else {
-    // 念のため：iframe がない場合は別タブ
-    console.warn('pdfFrame が見つからないため、新しいタブで開きます:', url);
-    window.open(url, '_blank');
+    console.warn('pdfFrame が見つからないため、新しいタブで開きます:', iframeUrl);
+    window.open(iframeUrl, '_blank');
   }
 }
 
@@ -183,7 +186,8 @@ window.addEventListener('DOMContentLoaded', () => {
   if (!isMobileView()) {
     const frame = document.getElementById('pdfFrame');
     if (frame) {
-      const url = 'kenchiku.pdf#page=1&zoom=page-width';
+      const cacheBuster = `v=${Date.now()}`;
+      const url = `kenchiku.pdf?${cacheBuster}#page=1&zoom=page-width`;
       console.log('初期表示 iframe:', url);
       frame.src = url;
     }
