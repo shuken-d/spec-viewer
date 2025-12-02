@@ -2,24 +2,23 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <title>公共住宅仕様書ビューア（ローカル）</title>
+  <title>公共住宅仕様書ビューア</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- スタイルシート読み込み -->
+
+  <!-- スタイルシート -->
   <link rel="stylesheet" href="style.css" />
-    <link rel="manifest" href="manifest.webmanifest" />
-  <meta name="theme-color" content="#ffffff" />
+
+  <!-- PWA 関連 -->
   <link rel="manifest" href="manifest.webmanifest" />
-<meta name="theme-color" content="#ffffff" />
-<link rel="icon" type="image/png" href="icon-192.png" />
-<link rel="apple-touch-icon" href="icon-192.png" />
-
-
+  <meta name="theme-color" content="#ffffff" />
+  <link rel="icon" type="image/png" href="icon-192.png" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
 </head>
 <body>
-   <header class="app-header">
+  <header class="app-header">
     <h1>公共住宅建設工事共通仕様書 ビューア</h1>
 
-    <!-- 追加：PDF切り替えボタン -->
+    <!-- PDF切り替えボタン -->
     <div style="margin-bottom: 6px;">
       <button type="button" onclick="openPdf('kenchiku')">建築編</button>
       <button type="button" onclick="openPdf('denki')">電気編</button>
@@ -27,7 +26,11 @@
     </div>
 
     <div class="search-row">
-      <input id="searchInput" type="search" placeholder="キーワードを入力（まだ動きません）" />
+      <input
+        id="searchInput"
+        type="search"
+        placeholder="キーワードを入力"
+      />
       <select id="partFilter">
         <option value="">全て</option>
         <option value="建築編">建築編</option>
@@ -37,30 +40,26 @@
     </div>
   </header>
 
-
   <main class="app-main">
-    <!-- 左側：検索結果（まだ空） -->
+    <!-- 左側：検索結果 -->
     <section id="results" class="results">
-      <p>ここに検索結果が表示されます。（まだロジック未実装）</p>
+      <p>ここに検索結果が表示されます。</p>
     </section>
 
-    <!-- 右側：PDFビューア（今はダミー表示） -->
+    <!-- 右側：PDFビューア -->
     <section id="viewer" class="viewer">
       <iframe id="pdfFrame" title="仕様書PDFビューア"></iframe>
     </section>
   </main>
 
-  <!-- 後で検索処理を書く app.js（今日はまだ中身ほぼ空） -->
+  <!-- アプリ本体 -->
   <script src="app.js"></script>
-    <script>
+
+  <!-- service worker 登録（1回でOK） -->
+  <script>
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker.register("service-worker.js");
     }
   </script>
-<script>
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("service-worker.js");
-  }
-</script>
 </body>
 </html>
